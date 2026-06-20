@@ -1,0 +1,21 @@
+{
+  "name": "isometric-escape",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "miniplex": "^2.0.0",
+    "three": "^0.179.1"
+  },
+  "devDependencies": {
+    "@types/three": "^0.184.1",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.3"
+  }
+}
