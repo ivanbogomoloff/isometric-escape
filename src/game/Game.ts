@@ -165,30 +165,32 @@ export class Game {
         const cell = maze.cells[y][x]
         const gridPosition = { x, y }
         const floorPosition = gridToWorld(gridPosition, maze.width, maze.height)
+        const isExit = cell === "exit"
+        const floor = new Mesh(
+          isExit ? EXIT_GEOMETRY : FLOOR_GEOMETRY,
+          isExit ? EXIT_MATERIAL.clone() : FLOOR_MATERIAL.clone(),
+        )
+
+        floor.receiveShadow = true
+        this.scene.add(floor)
+
+        const floorEntity: Entity = {
+          position: { ...floorPosition, y: isExit ? 0.03 : -0.04 },
+          gridPosition,
+          mesh: floor,
+          floor: {
+            baseColor: isExit ? EXIT_COLOR : FLOOR_COLOR,
+          },
+        }
+
+        if (isExit) {
+          floorEntity.exit = true
+          floorEntity.spin = 0.018
+        }
+
+        world.add(floorEntity)
 
         if (cell !== "wall") {
-          const isExit = cell === "exit"
-          const floor = new Mesh(
-            isExit ? EXIT_GEOMETRY : FLOOR_GEOMETRY,
-            isExit ? EXIT_MATERIAL.clone() : FLOOR_MATERIAL.clone(),
-          )
-          floor.receiveShadow = true
-          this.scene.add(floor)
-          const floorEntity: Entity = {
-            position: { ...floorPosition, y: isExit ? 0.03 : -0.04 },
-            gridPosition,
-            mesh: floor,
-            floor: {
-              baseColor: isExit ? EXIT_COLOR : FLOOR_COLOR,
-            },
-          }
-
-          if (isExit) {
-            floorEntity.exit = true
-            floorEntity.spin = 0.018
-          }
-
-          world.add(floorEntity)
           continue
         }
 
