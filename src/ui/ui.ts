@@ -51,6 +51,7 @@ export class GameUI {
       <div class="hud-card"><span>Уровень</span><strong>${state.level}</strong></div>
       <div class="hud-card"><span>Время</span><strong>${formatTime(state.timeLeft)}</strong></div>
       <div class="hud-card"><span>Очки</span><strong>${state.score}</strong></div>
+      ${renderBoostProgress(state)}
     `
   }
 
@@ -161,6 +162,24 @@ function formatTime(value: number) {
   const minutes = Math.floor(value / 60)
   const seconds = Math.floor(value % 60)
   return `${minutes}:${seconds.toString().padStart(2, "0")}`
+}
+
+function renderBoostProgress(state: GameState) {
+  if (state.boostRemaining <= 0 || state.boostDuration <= 0) {
+    return ""
+  }
+
+  const progress = Math.max(0, Math.min(1, state.boostRemaining / state.boostDuration))
+
+  return `
+    <div class="hud-card boost-card">
+      <span>Ускорение</span>
+      <strong>${state.boostRemaining.toFixed(1)}с</strong>
+      <div class="boost-progress" aria-label="Оставшееся ускорение">
+        <div class="boost-progress-fill" style="width: ${(progress * 100).toFixed(1)}%"></div>
+      </div>
+    </div>
+  `
 }
 
 function escapeHtml(value: string) {

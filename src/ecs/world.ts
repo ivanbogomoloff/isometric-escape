@@ -12,6 +12,14 @@ export type PlayerComponent = {
   speed: number
   path: GridPoint[]
   movingTo?: GridPoint
+  boostRemaining?: number
+  boostDuration?: number
+  boostMultiplier?: number
+}
+
+export type BoostPickupComponent = {
+  duration: number
+  multiplier: number
 }
 
 export type Entity = {
@@ -24,6 +32,7 @@ export type Entity = {
   floor?: {
     baseColor: string
   }
+  boostPickup?: BoostPickupComponent
   exit?: true
   velocity?: Vec3
   spin?: number
@@ -35,6 +44,7 @@ export const queries = {
   renderable: world.with("position", "mesh"),
   player: world.with("player", "position", "gridPosition", "mesh"),
   floors: world.with("floor", "mesh", "gridPosition"),
+  boostPickups: world.with("boostPickup", "mesh", "gridPosition"),
   spinners: world.with("mesh", "spin"),
 }
 

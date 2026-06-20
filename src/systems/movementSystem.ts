@@ -16,7 +16,9 @@ export function movementSystem(delta: number, maze: Maze) {
     const distanceX = target.x - entity.position.x
     const distanceZ = target.z - entity.position.z
     const distance = Math.hypot(distanceX, distanceZ)
-    const step = entity.player.speed * delta
+    const speedMultiplier =
+      entity.player.boostRemaining && entity.player.boostRemaining > 0 ? (entity.player.boostMultiplier ?? 1) : 1
+    const step = entity.player.speed * speedMultiplier * delta
 
     if (distance <= step) {
       entity.position.x = target.x

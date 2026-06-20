@@ -8,6 +8,8 @@ export type GameState = {
   timeLeft: number
   levelTime: number
   lastLevelScore: number
+  boostRemaining: number
+  boostDuration: number
 }
 
 export const INITIAL_LEVEL_TIME = 10 * 60
@@ -21,6 +23,8 @@ export function createInitialState(): GameState {
     timeLeft: INITIAL_LEVEL_TIME,
     levelTime: INITIAL_LEVEL_TIME,
     lastLevelScore: 0,
+    boostRemaining: 0,
+    boostDuration: 0,
   }
 }
 
