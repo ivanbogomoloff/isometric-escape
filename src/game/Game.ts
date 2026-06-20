@@ -3,6 +3,7 @@ import {
   BoxGeometry,
   Color,
   DirectionalLight,
+  Group,
   Mesh,
   MeshStandardMaterial,
   OrthographicCamera,
@@ -35,7 +36,10 @@ import {
 } from "./state"
 
 const FLOOR_GEOMETRY = new BoxGeometry(0.98, 0.08, 0.98)
-const WALL_GEOMETRY = new BoxGeometry(0.34, 1, 0.34)
+const WALL_THICKNESS = 0.28
+const WALL_CORE_GEOMETRY = new BoxGeometry(WALL_THICKNESS, 1, WALL_THICKNESS)
+const WALL_CONNECTOR_X_GEOMETRY = new BoxGeometry(1, 1, WALL_THICKNESS)
+const WALL_CONNECTOR_Z_GEOMETRY = new BoxGeometry(WALL_THICKNESS, 1, 1)
 const EXIT_GEOMETRY = new BoxGeometry(0.72, 0.12, 0.72)
 const PLAYER_GEOMETRY = new BoxGeometry(0.46, 0.7, 0.46)
 
@@ -178,9 +182,7 @@ export class Game {
           continue
         }
 
-        const wall = new Mesh(WALL_GEOMETRY, WALL_MATERIAL)
-        wall.castShadow = true
-        wall.receiveShadow = true
+        const wall = createWallMesh(maze, x, y)
         this.scene.add(wall)
         world.add({
           position: { ...floorPosition, y: 0.5 },
@@ -298,4 +300,35 @@ function getKeyDelta(key: string) {
     default:
       return undefined
   }
+}
+
+function createWallMesh(maze: Maze, x: number, y: number) {
+  const wall = new Group()
+  const core = new Mesh(WALL_CORE_GEOMETRY, WALL_MATERIAL)
+
+  core.castShadow = true
+  core.receiveShadow = true
+  wall.add(core)
+
+  if (isWallCell(maze, x + 1, y)) {
+    const connector = new Mesh(WALL_CONNECTOR_X_GEOMETRY, WALL_MATERIAL)
+    connector.position.x = 0.5
+    connector.castShadow = true
+    connector.receiveShadow = true
+    wall.add(connector)
+  }
+
+  if (isWallCell(maze, x, y + 1)) {
+    const connector = new Mesh(WALL_CONNECTOR_Z_GEOMETRY, WALL_MATERIAL)
+    connector.position.z = 0.5
+    connector.castShadow = true
+    connector.receiveShadow = true
+    wall.add(connector)
+  }
+
+  return wall
+}
+
+function isWallCell(maze: Maze, x: number, y: number) {
+  return y >= 0 && y < maze.height && x >= 0 && x < maze.width && maze.cells[y][x] === "wall"
 }
