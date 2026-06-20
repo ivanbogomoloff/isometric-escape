@@ -38,5 +38,5 @@ export function getLevelSize(level: number) {
 }
 
 export function calculateLevelScore(level: number, timeLeft: number) {
-  return level * 1000 + Math.ceil(timeLeft) * 10
+  return level * 10 + Math.ceil(timeLeft / 10)
 }
