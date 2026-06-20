@@ -35,7 +35,7 @@ import {
 } from "./state"
 
 const FLOOR_GEOMETRY = new BoxGeometry(0.98, 0.08, 0.98)
-const WALL_GEOMETRY = new BoxGeometry(0.92, 1, 0.92)
+const WALL_GEOMETRY = new BoxGeometry(0.34, 1, 0.34)
 const EXIT_GEOMETRY = new BoxGeometry(0.72, 0.12, 0.72)
 const PLAYER_GEOMETRY = new BoxGeometry(0.46, 0.7, 0.46)
 
