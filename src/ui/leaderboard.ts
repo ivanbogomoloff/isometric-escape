@@ -1,8 +1,16 @@
 export type LeaderboardEntry = {
   name: string
-  score: number
   level: number
+  gold: number
   createdAt: string
+}
+
+type StoredLeaderboardEntry = {
+  name?: unknown
+  score?: unknown
+  level?: unknown
+  gold?: unknown
+  createdAt?: unknown
 }
 
 const STORAGE_KEY = "isometric-escape:leaderboard"
@@ -16,17 +24,45 @@ export function getLeaderboard(): LeaderboardEntry[] {
   }
 
   try {
-    const parsed = JSON.parse(raw) as LeaderboardEntry[]
-    return parsed
-      .filter((entry) => entry.name && Number.isFinite(entry.score) && Number.isFinite(entry.level))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, MAX_ENTRIES)
+    const parsed = JSON.parse(raw) as StoredLeaderboardEntry[]
+    if (!Array.isArray(parsed)) {
+      return []
+    }
+
+    return parsed.map(normalizeEntry).filter(isLeaderboardEntry).sort(compareEntries).slice(0, MAX_ENTRIES)
   } catch {
     return []
   }
 }
 
 export function saveLeaderboardEntry(entry: LeaderboardEntry) {
-  const next = [...getLeaderboard(), entry].sort((a, b) => b.score - a.score).slice(0, MAX_ENTRIES)
+  const next = [...getLeaderboard(), entry].sort(compareEntries).slice(0, MAX_ENTRIES)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+}
+
+function normalizeEntry(entry: StoredLeaderboardEntry): LeaderboardEntry | undefined {
+  const gold = typeof entry.gold === "number" ? entry.gold : entry.score
+
+  if (typeof entry.name !== "string" || typeof entry.level !== "number" || typeof gold !== "number") {
+    return undefined
+  }
+
+  return {
+    name: entry.name,
+    level: entry.level,
+    gold,
+    createdAt: typeof entry.createdAt === "string" ? entry.createdAt : new Date().toISOString(),
+  }
+}
+
+function isLeaderboardEntry(entry: LeaderboardEntry | undefined): entry is LeaderboardEntry {
+  if (!entry) {
+    return false
+  }
+
+  return Boolean(entry.name) && Number.isFinite(entry.level) && Number.isFinite(entry.gold)
+}
+
+function compareEntries(a: LeaderboardEntry, b: LeaderboardEntry) {
+  return b.level - a.level || b.gold - a.gold
 }

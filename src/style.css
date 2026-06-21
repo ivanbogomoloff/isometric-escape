@@ -77,6 +77,22 @@ input {
   padding: 0.7rem 0.9rem;
 }
 
+.ui-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  object-fit: contain;
+}
+
+.gold-icon {
+  color: #ffd166;
+  filter: drop-shadow(0 0 0.35rem rgb(255 209 102 / 34%));
+}
+
+.gold-card,
+.wall-pass-card {
+  align-items: center;
+}
+
 .hud-card span {
   color: #9fb3c8;
 }
@@ -99,6 +115,50 @@ input {
   border-radius: inherit;
   background: linear-gradient(90deg, #48cae4, #8ce99a);
   transition: width 120ms linear;
+}
+
+.long-step-progress-fill {
+  background: linear-gradient(90deg, #ffd166, #f77f00);
+}
+
+.shop-card {
+  position: fixed;
+  top: 50%;
+  right: 1rem;
+  align-items: stretch;
+  width: min(12rem, calc(100vw - 2rem));
+  pointer-events: auto;
+  transform: translateY(-50%);
+}
+
+.shop-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.shop-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 0.45rem;
+  align-items: center;
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  text-align: left;
+}
+
+.shop-item > span {
+  color: #08111f;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.shop-item > strong {
+  display: inline-flex;
+  grid-column: 2;
+  gap: 0.25rem;
+  align-items: center;
+  font-size: 0.78rem;
 }
 
 .panel-wrap {
@@ -158,9 +218,14 @@ button {
     background 140ms ease;
 }
 
-button:hover {
+button:not(:disabled):hover {
   background: #b2f2bb;
   transform: translateY(-1px);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
 }
 
 button.secondary {
@@ -178,10 +243,16 @@ button.secondary {
 
 .leaderboard li {
   display: grid;
-  grid-template-columns: 2rem 1fr auto;
+  grid-template-columns: 2rem 1fr auto auto;
   gap: 0.5rem;
   padding: 0.45rem 0;
   border-bottom: 1px solid rgb(255 255 255 / 10%);
+}
+
+.leaderboard-gold {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
 }
 
 .hint {
@@ -217,5 +288,18 @@ button.secondary {
 
   .boost-card {
     min-width: 100%;
+  }
+
+  .shop-card {
+    align-items: stretch;
+    top: auto;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    width: min(10.5rem, calc(100vw - 1rem));
+    transform: none;
+  }
+
+  .shop-item {
+    width: 100%;
   }
 }

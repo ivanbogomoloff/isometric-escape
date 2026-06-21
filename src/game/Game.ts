@@ -22,7 +22,7 @@ import { generateMaze } from "../level/generateMaze"
 import { samePoint, type GridPoint, type Maze } from "../level/types"
 import { cameraSystem, resizeCamera } from "../systems/cameraSystem"
 import { collisionSystem } from "../systems/collisionSystem"
-import { CLICK_MOVE_RANGE, movePlayerByDelta, setPlayerPathTo } from "../systems/inputSystem"
+import { movePlayerByDelta, setPlayerPathTo } from "../systems/inputSystem"
 import { movementSystem } from "../systems/movementSystem"
 import { pickupSystem } from "../systems/pickupSystem"
 import { reachableHighlightSystem } from "../systems/reachableHighlightSystem"
@@ -31,11 +31,18 @@ import { timerSystem } from "../systems/timerSystem"
 import { GameUI } from "../ui/ui"
 import { getLeaderboard, saveLeaderboardEntry } from "../ui/leaderboard"
 import {
-  calculateLevelScore,
+  DEFAULT_CLICK_MOVE_RANGE,
+  LONG_STEP_DURATION,
+  LONG_STEP_MOVE_RANGE,
+  SHOP_ITEMS,
+  SPEED_BOOST_DURATION,
+  SPEED_BOOST_MULTIPLIER,
+  calculateLevelGold,
   createInitialState,
   getLevelSize,
   getLevelTime,
   type GameState,
+  type ShopItemId,
 } from "./state"
 
 const FLOOR_GEOMETRY = new BoxGeometry(0.98, 0.08, 0.98)
@@ -69,7 +76,7 @@ export class Game {
   private state: GameState = createInitialState()
   private maze: Maze | undefined
   private lastFrameTime = performance.now()
-  private scoreSaved = false
+  private resultSaved = false
 
   constructor(container: HTMLElement) {
     this.root.className = "game-root"
@@ -94,6 +101,7 @@ export class Game {
       nextLevel: () => this.nextLevel(),
       restart: () => this.startGame(this.state.playerName || "Player"),
       showMenu: () => this.showMenu(),
+      buyItem: (itemId) => this.buyItem(itemId),
     })
 
     window.addEventListener("resize", this.resize)
@@ -112,9 +120,10 @@ export class Game {
     if (this.maze && this.state.mode === "playing") {
       timerSystem(this.state, delta, () => this.finishGame())
       pickupSystem(delta)
+      this.updateTimedEffects(delta)
       movementSystem(delta, this.maze)
       collisionSystem(this.maze, () => this.finishLevel())
-      reachableHighlightSystem(this.maze, CLICK_MOVE_RANGE)
+      reachableHighlightSystem(this.maze, this.getClickMoveRange(), this.state.wallPassCharges > 0)
       this.syncPlayerEffects()
     }
 
@@ -130,7 +139,7 @@ export class Game {
     this.state = createInitialState()
     this.state.playerName = name
     this.state.mode = "playing"
-    this.scoreSaved = false
+    this.resultSaved = false
     this.loadLevel(1)
   }
 
@@ -144,7 +153,7 @@ export class Game {
     clearWorld()
     this.maze = undefined
     this.state = createInitialState()
-    this.scoreSaved = false
+    this.resultSaved = false
     this.ui.update(this.state, getLeaderboard())
   }
 
@@ -156,6 +165,8 @@ export class Game {
     this.state.timeLeft = this.state.levelTime
     this.state.boostRemaining = 0
     this.state.boostDuration = 0
+    this.state.longStepRemaining = 0
+    this.state.longStepDuration = 0
     this.spawnMaze(this.maze)
   }
 
@@ -240,8 +251,8 @@ export class Game {
         gridPosition,
         mesh: pickup,
         boostPickup: {
-          duration: 5,
-          multiplier: 1.65,
+          duration: SPEED_BOOST_DURATION,
+          multiplier: SPEED_BOOST_MULTIPLIER,
         },
         spin: 0.035,
       })
@@ -259,16 +270,74 @@ export class Game {
     this.state.boostDuration = 0
   }
 
+  private updateTimedEffects(delta: number) {
+    if (this.state.longStepRemaining <= 0) {
+      return
+    }
+
+    this.state.longStepRemaining = Math.max(0, this.state.longStepRemaining - delta)
+
+    if (this.state.longStepRemaining === 0) {
+      this.state.longStepDuration = 0
+    }
+  }
+
+  private buyItem(itemId: ShopItemId) {
+    if (this.state.mode !== "playing") {
+      return
+    }
+
+    const item = SHOP_ITEMS.find((candidate) => candidate.id === itemId)
+    if (!item || this.state.gold < item.cost) {
+      return
+    }
+
+    if (itemId === "speedBoost" && !this.applySpeedBoost()) {
+      return
+    }
+
+    this.state.gold -= item.cost
+
+    if (itemId === "longStep") {
+      this.state.longStepRemaining = LONG_STEP_DURATION
+      this.state.longStepDuration = LONG_STEP_DURATION
+      return
+    }
+
+    if (itemId === "wallPass") {
+      this.state.wallPassCharges += 1
+    }
+  }
+
+  private applySpeedBoost() {
+    for (const player of queries.player) {
+      player.player.boostRemaining = SPEED_BOOST_DURATION
+      player.player.boostDuration = SPEED_BOOST_DURATION
+      player.player.boostMultiplier = SPEED_BOOST_MULTIPLIER
+      this.state.boostRemaining = SPEED_BOOST_DURATION
+      this.state.boostDuration = SPEED_BOOST_DURATION
+      return true
+    }
+
+    return false
+  }
+
+  private getClickMoveRange() {
+    return this.state.longStepRemaining > 0 ? LONG_STEP_MOVE_RANGE : DEFAULT_CLICK_MOVE_RANGE
+  }
+
   private finishLevel() {
     if (this.state.mode !== "playing") {
       return
     }
 
-    const levelScore = calculateLevelScore(this.state.level, this.state.timeLeft)
-    this.state.lastLevelScore = levelScore
-    this.state.score += levelScore
+    const levelGold = calculateLevelGold(this.state.level, this.state.timeLeft)
+    this.state.lastLevelGold = levelGold
+    this.state.gold += levelGold
     this.state.boostRemaining = 0
     this.state.boostDuration = 0
+    this.state.longStepRemaining = 0
+    this.state.longStepDuration = 0
     this.state.mode = "levelComplete"
   }
 
@@ -280,15 +349,17 @@ export class Game {
     this.state.mode = "gameOver"
     this.state.boostRemaining = 0
     this.state.boostDuration = 0
+    this.state.longStepRemaining = 0
+    this.state.longStepDuration = 0
 
-    if (!this.scoreSaved) {
+    if (!this.resultSaved) {
       saveLeaderboardEntry({
         name: this.state.playerName || "Player",
-        score: this.state.score,
         level: this.state.level,
+        gold: this.state.gold,
         createdAt: new Date().toISOString(),
       })
-      this.scoreSaved = true
+      this.resultSaved = true
     }
   }
 
@@ -311,7 +382,10 @@ export class Game {
     }
 
     event.preventDefault()
-    movePlayerByDelta(this.maze, delta)
+    const result = movePlayerByDelta(this.maze, delta, this.state.wallPassCharges > 0)
+    if (result === "wallPass") {
+      this.state.wallPassCharges = Math.max(0, this.state.wallPassCharges - 1)
+    }
   }
 
   private readonly handlePointerDown = (event: PointerEvent) => {
@@ -329,7 +403,15 @@ export class Game {
       return
     }
 
-    setPlayerPathTo(this.maze, worldToGrid(hit.x, hit.z, this.maze.width, this.maze.height), CLICK_MOVE_RANGE)
+    const result = setPlayerPathTo(
+      this.maze,
+      worldToGrid(hit.x, hit.z, this.maze.width, this.maze.height),
+      this.getClickMoveRange(),
+      this.state.wallPassCharges > 0,
+    )
+    if (result === "wallPass") {
+      this.state.wallPassCharges = Math.max(0, this.state.wallPassCharges - 1)
+    }
   }
 }
 
