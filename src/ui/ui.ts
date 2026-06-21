@@ -3,7 +3,7 @@ import longStepIconUrl from "../assets/icons/long-step.svg"
 import speedIconUrl from "../assets/icons/speed.svg"
 import wallPassIconUrl from "../assets/icons/wall-pass.svg"
 import { SHOP_ITEMS, type GameState, type ShopItemId } from "../game/state"
-import type { LeaderboardEntry } from "./leaderboard"
+import type { LeaderboardEntry } from "../repositories/leaderboardRepository"
 
 type UIActions = {
   startGame: (name: string) => void
@@ -162,11 +162,11 @@ export class GameUI {
 
 function renderLeaderboard(entries: LeaderboardEntry[]) {
   if (entries.length === 0) {
-    return "<p class=\"hint\">Таблица уровней пока пуста.</p>"
+    return "<p class=\"hint\">Таблица результатов пока пуста.</p>"
   }
 
   return `
-    <h2>Таблица уровней</h2>
+    <h2>Таблица результатов</h2>
     <ol class="leaderboard">
       ${entries
         .map(

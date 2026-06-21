@@ -29,7 +29,7 @@ import { reachableHighlightSystem } from "../systems/reachableHighlightSystem"
 import { renderSystem } from "../systems/renderSystem"
 import { timerSystem } from "../systems/timerSystem"
 import { GameUI } from "../ui/ui"
-import { getLeaderboard, saveLeaderboardEntry } from "../ui/leaderboard"
+import { LocalStorageLeaderboardRepository, type LeaderboardRepository } from "../repositories/leaderboardRepository"
 import {
   DEFAULT_CLICK_MOVE_RANGE,
   LONG_STEP_DURATION,
@@ -72,6 +72,7 @@ export class Game {
   private readonly pointer = new Vector2()
   private readonly groundPlane = new Plane(new Vector3(0, 1, 0), 0)
   private readonly intersection = new Vector3()
+  private readonly leaderboardRepository: LeaderboardRepository = new LocalStorageLeaderboardRepository()
   private readonly ui: GameUI
   private state: GameState = createInitialState()
   private maze: Maze | undefined
@@ -106,10 +107,11 @@ export class Game {
 
     window.addEventListener("resize", this.resize)
     window.addEventListener("keydown", this.handleKeyDown)
+    window.addEventListener("beforeunload", this.handleBeforeUnload)
     this.renderer.domElement.addEventListener("pointerdown", this.handlePointerDown)
 
     this.resize()
-    this.ui.update(this.state, getLeaderboard())
+    this.ui.update(this.state, this.getLeaderboard())
     requestAnimationFrame(this.tick)
   }
 
@@ -130,7 +132,7 @@ export class Game {
     cameraSystem(this.camera)
     renderSystem()
     this.renderer.render(this.scene, this.camera)
-    this.ui.update(this.state, getLeaderboard())
+    this.ui.update(this.state, this.getLeaderboard())
 
     requestAnimationFrame(this.tick)
   }
@@ -150,11 +152,12 @@ export class Game {
   }
 
   private showMenu() {
+    this.saveCurrentResult()
     clearWorld()
     this.maze = undefined
     this.state = createInitialState()
     this.resultSaved = false
-    this.ui.update(this.state, getLeaderboard())
+    this.ui.update(this.state, this.getLeaderboard())
   }
 
   private loadLevel(level: number) {
@@ -352,15 +355,25 @@ export class Game {
     this.state.longStepRemaining = 0
     this.state.longStepDuration = 0
 
-    if (!this.resultSaved) {
-      saveLeaderboardEntry({
-        name: this.state.playerName || "Player",
-        level: this.state.level,
-        gold: this.state.gold,
-        createdAt: new Date().toISOString(),
-      })
-      this.resultSaved = true
+    this.saveCurrentResult()
+  }
+
+  private saveCurrentResult() {
+    if (this.resultSaved || !shouldSaveResult(this.state)) {
+      return
     }
+
+    this.leaderboardRepository.saveEntry({
+      name: this.state.playerName || "Player",
+      level: this.state.level,
+      gold: this.state.gold,
+      createdAt: new Date().toISOString(),
+    })
+    this.resultSaved = true
+  }
+
+  private getLeaderboard() {
+    return this.leaderboardRepository.getEntries()
   }
 
   private readonly resize = () => {
@@ -413,6 +426,14 @@ export class Game {
       this.state.wallPassCharges = Math.max(0, this.state.wallPassCharges - 1)
     }
   }
+
+  private readonly handleBeforeUnload = () => {
+    this.saveCurrentResult()
+  }
+}
+
+function shouldSaveResult(state: GameState) {
+  return state.mode !== "menu" && Boolean(state.playerName) && (state.mode === "gameOver" || state.level > 1 || state.gold > 0)
 }
 
 function getKeyDelta(key: string) {

@@ -5,6 +5,11 @@ export type LeaderboardEntry = {
   createdAt: string
 }
 
+export type LeaderboardRepository = {
+  getEntries: () => LeaderboardEntry[]
+  saveEntry: (entry: LeaderboardEntry) => void
+}
+
 type StoredLeaderboardEntry = {
   name?: unknown
   score?: unknown
@@ -16,28 +21,30 @@ type StoredLeaderboardEntry = {
 const STORAGE_KEY = "isometric-escape:leaderboard"
 const MAX_ENTRIES = 10
 
-export function getLeaderboard(): LeaderboardEntry[] {
-  const raw = localStorage.getItem(STORAGE_KEY)
+export class LocalStorageLeaderboardRepository implements LeaderboardRepository {
+  getEntries() {
+    const raw = localStorage.getItem(STORAGE_KEY)
 
-  if (!raw) {
-    return []
-  }
-
-  try {
-    const parsed = JSON.parse(raw) as StoredLeaderboardEntry[]
-    if (!Array.isArray(parsed)) {
+    if (!raw) {
       return []
     }
 
-    return parsed.map(normalizeEntry).filter(isLeaderboardEntry).sort(compareEntries).slice(0, MAX_ENTRIES)
-  } catch {
-    return []
-  }
-}
+    try {
+      const parsed = JSON.parse(raw) as StoredLeaderboardEntry[]
+      if (!Array.isArray(parsed)) {
+        return []
+      }
 
-export function saveLeaderboardEntry(entry: LeaderboardEntry) {
-  const next = [...getLeaderboard(), entry].sort(compareEntries).slice(0, MAX_ENTRIES)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+      return parsed.map(normalizeEntry).filter(isLeaderboardEntry).sort(compareEntries).slice(0, MAX_ENTRIES)
+    } catch {
+      return []
+    }
+  }
+
+  saveEntry(entry: LeaderboardEntry) {
+    const next = [...this.getEntries(), entry].sort(compareEntries).slice(0, MAX_ENTRIES)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+  }
 }
 
 function normalizeEntry(entry: StoredLeaderboardEntry): LeaderboardEntry | undefined {
